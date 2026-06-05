@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thiệp Mời - Chẩn Đoán Lỗi</title>
+    <style>
+        /* Khóa cuộn trang và để nền đen */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Nền đen */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Video luôn vừa vặn 100% màn hình, không bị cắt xén */
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Lựa chọn an toàn nhất */
+            outline: none;
+            /* Ban đầu ẩn video, chỉ hiện khi đã sẵn sàng */
+            opacity: 0; 
+            transition: opacity 0.5s ease;
+        }
+
+        /* Khi video sẵn sàng thì hiện lên */
+        video.ready {
+            opacity: 1;
+        }
+
+        /* Màn hình chờ */
+        #play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .play-btn {
+            padding: 15px 40px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 30px;
+            font-size: 16px;
+            letter-spacing: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .play-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+        }
+
+        /* Màn hình hiển thị lỗi (Chỉ dùng cho mục đích kiểm tra) */
+        #error-log {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 100;
+            display: none; /* Mặc định ẩn */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-log"></div>
+
+    <div id="play-overlay">
+        <button class="play-btn" id="main-action-btn">ĐANG TẢI THIỆP MỜI...</button>
+    </div>
+
+    <video id="invitation-video" playsinline preload="auto">
+        <source id="video-source" src="Invitation_LC.mp4" type="video/mp4">
+        Trình duyệt của bạn không hỗ trợ thẻ video.
+    </video>
+
+    <script>
+        const video = document.getElementById('invitation-video');
+        const overlay = document.getElementById('play-overlay');
+        const playBtn = document.getElementById('main-action-btn');
+        const errorLog = document.getElementById('error-log');
+        const source = document.getElementById('video-source');
+
+        // Hàm hiển thị lỗi lên màn hình (để bạn dễ nhìn thấy)
+        function logError(message) {
+            errorLog.style.display = 'block';
+            errorLog.innerHTML += message + '<br>';
+        }
+
+        // --- KHOA CHẨN ĐOÁN LỖI ---
+
+        // Lỗi 1: Kiểm tra xem file video có tồn tại không
+        source.onerror = function() {
+            logError("❌ KHÔNG TÌM THẤY VIDEO ở đường dẫn này: <br><i>" + source.src + "</i><br>=> Vui lòng kiểm tra lại đường dẫn file của bạn.");
+        };
+
+        // Lỗi 3: Lỗi mã hóa codec (file có nhưng không play được)
+        video.addEventListener('error', function(e) {
+            if (e.target.error.code === 4) { // Lỗi định dạng không được hỗ trợ
+                logError("❌ LỖI ĐỊNH DẠNG: File video MP4 này không được trình duyệt hỗ trợ.<br>=> Thử nén lại video hoặc dùng công cụ như Handbrake.");
+            }
+        });
+
+        // --- QUY TRÌNH KẾT NỐI TỐI ƯU ---
+
+        // Bắt đầu bằng cách vô hiệu hóa nút (khi chưa load xong)
+        playBtn.disabled = true;
+
+        // Sự kiện: Khi video đã tải đủ dữ liệu để bắt đầu phát (Bypasses "tải video" chậm)
+        video.addEventListener('canplaythrough', function() {
+            playBtn.innerText = 'MỞ THIỆP MỜI';
+            playBtn.disabled = false;
+        });
+
+        // Bắt sự kiện khi khách mời bấm nút "Mở thiệp mời"
+        overlay.addEventListener('click', () => {
+            if (playBtn.disabled) return; // Không cho bấm khi chưa load xong
+            
+            // Ẩn màn hình chờ đi
+            overlay.style.display = 'none';
+            
+            // Hiển thị video dần dần (opacity transition)
+            video.className = 'ready';
+            
+            // Phát video (sẽ phát trơn tru kèm tiếng)
+            video.play().catch(function(error) {
+                // Nếu vẫn có lỗi ngoài ý muốn khi play
+                logError("❌ LỖI PHÁT VIDEO: <br>" + error.message);
+                video.style.opacity = 1; // Đảm bảo video vẫn được hiện ra
+            });
+        });
+
+    </script>
+</body>
+</html>
